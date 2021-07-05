@@ -50,7 +50,7 @@
       const resultLink = document.getElementById("authURL");
       // Replace this with your own endpoint
       const getAuthURL =
-        "https://accounts.google.com/o/oauth2/auth";
+        "https://1qtlzuxoll.execute-api.ca-central-1.amazonaws.com/dev/api/get-auth-url";
 
       getURLElement.onclick = function () {
         fetch(getAuthURL)
@@ -73,7 +73,7 @@
       const getAccessToken = document.getElementById("getToken");
       const accessTokenElement = document.getElementById("accessToken");
       const getToken =
-        "https://oauth2.googleapis.com/token";
+        "https://1qtlzuxoll.execute-api.ca-central-1.amazonaws.com/dev/api/token/{code}";
 
       getAccessToken.onclick = function () {
         let code = codeValue.value;
@@ -94,7 +94,7 @@
       // --------------------- END OF STEP 2
       const getEvents = document.getElementById("getEvents");
       const events = document.getElementById("events");
-      const getCalendarEvents = "YOUR_LAMBDA_GET_CALENDAR_EVENTS_ENDPOINT";
+      const getCalendarEvents = "hhttps://1qtlzuxoll.execute-api.ca-central-1.amazonaws.com/dev/api/get-events/{access_token}";
 
       getEvents.onclick = function () {
         const { access_token } = JSON.parse(accessTokenElement.innerText);
