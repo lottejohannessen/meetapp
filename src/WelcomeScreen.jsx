@@ -29,7 +29,7 @@ o.svg"
           </div>
         </div>
         <a
-          href="https://lottejohannessen.github.io/meet/privacy.html"
+          href="https://sabine-mansour.github.io/meet/privacy.html"
           rel="nofollow noopener"
         >
           Privacy policy

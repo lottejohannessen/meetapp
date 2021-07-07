@@ -3,13 +3,14 @@ import { shallow, mount } from 'enzyme';
 import App from '../App';
 import EventList from '../EventList';
 import CitySearch from '../CitySearch';
-import NumberofEvents from '../NumberofEvents';
-import { getEvents } from '../api';
+import NumberOfEvents from '../NumberOfEvents';
+import { mockData } from '../mock-data';
+import { extractLocations, getEvents } from '../api';
 
 describe('<App /> component', () => {
   let AppWrapper;
   beforeAll(() => {
-    AppWrapper = shallow(<App />)
+    AppWrapper = shallow(<App />);
   });
 
   test('render list of events', () => {
@@ -18,11 +19,11 @@ describe('<App /> component', () => {
 
   test('render CitySearch', () => {
     expect(AppWrapper.find(CitySearch)).toHaveLength(1);
-  });
+  })
 
-  test('renders the NumberofEvents Bar', () => {
-    expect(AppWrapper.find(NumberofEvents)).toHaveLength(1);
-  });
+  test('render CitySearch', () => {
+    expect(AppWrapper.find(NumberOfEvents)).toHaveLength(1);
+  })
 });
 
 describe('<App /> integration', () => {
@@ -34,7 +35,7 @@ describe('<App /> integration', () => {
     AppWrapper.unmount();
   });
 
-  test('App passes the locations state as a prop to CitySearch', () => {
+  test('App passes "locations" as a prop to CitySearch', () => {
     const AppWrapper = mount(<App />);
     const AppLocationsState = AppWrapper.state('locations');
     expect(AppLocationsState).not.toEqual(undefined);
@@ -42,19 +43,43 @@ describe('<App /> integration', () => {
     AppWrapper.unmount();
   });
 
-  test('get list of events matching the city selected by user', async () => {
+  test('App passes "numberOfEvents" as a prop to NumberOfEvents', () => {
     const AppWrapper = mount(<App />);
-    const CitySearchWrapper = AppWrapper.find(CitySearch);
-    CitySearchWrapper.setState({ query: 'London, UK' });
-    const allEvents = await getEvents();
-    const query = CitySearchWrapper.state('query');
-    await CitySearchWrapper.instance().handleItemClicked(query);
-    const eventsToShow = allEvents.filter(event => event.location === query);
-    expect(AppWrapper.state('eventsLocFilt')).toEqual(eventsToShow);
+    const AppNumberOfEventsState = AppWrapper.state('numberOfEvents');
+    expect(AppWrapper.find(NumberOfEvents).props().numberOfEvents).toEqual(AppNumberOfEventsState);
     AppWrapper.unmount();
   });
 
-  test('get all events when user selects "See all cities"', async () => {
+  test('get list on change number of events by user', () => {
+    const AppWrapper = mount(<App />);
+    const NumberOfEventsWrapper = AppWrapper.find(NumberOfEvents);
+    AppWrapper.instance().updateEvents = jest.fn();
+    AppWrapper.instance().forceUpdate();
+    NumberOfEventsWrapper.setState({ numberOfEvents: 5 });
+    const eventObject = { target: { value: 1 } };
+    NumberOfEventsWrapper.find(".event-number-input").simulate("change", eventObject);
+    expect(NumberOfEventsWrapper.state("numberOfEvents")).toBe(1);
+    expect(AppWrapper.instance().updateEvents).toHaveBeenCalledWith('', 1);
+    AppWrapper.unmount();
+  });
+
+
+  test('get list of events matching the city selected by the user', async () => {
+    const AppWrapper = mount(<App />);
+    const CitySearchWrapper = AppWrapper.find(CitySearch);
+    const locations = extractLocations(mockData);
+    CitySearchWrapper.setState({ suggestions: locations });
+    const suggestions = CitySearchWrapper.state('suggestions');
+    const selectedIndex = Math.floor(Math.random() * (suggestions.length));
+    const selectedCity = suggestions[selectedIndex];
+    await CitySearchWrapper.instance().handleItemClicked(selectedCity);
+    const allEvents = await getEvents();
+    const eventsToShow = allEvents.filter(event => event.location === selectedCity);
+    expect(AppWrapper.state('events')).toEqual(eventsToShow);
+    AppWrapper.unmount();
+  });
+
+  test('get list of all events when user selects "See all cities"', async () => {
     const AppWrapper = mount(<App />);
     const suggestionItems = AppWrapper.find(CitySearch).find('.suggestions li');
     await suggestionItems.at(suggestionItems.length - 1).simulate('click');
@@ -62,5 +87,9 @@ describe('<App /> integration', () => {
     expect(AppWrapper.state('events')).toEqual(allEvents);
     AppWrapper.unmount();
   });
+
+
+
 });
+
 
