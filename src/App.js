@@ -1,170 +1,116 @@
 import React, { Component } from 'react';
 import './App.css';
-
-import { BrowserRouter as Router, Route } from "react-router-dom";
-import { extractLocations, getEvents, numFilter } from './api';
-
-import EventView from './EventView';
-import HomeView from './HomeView';
-import NavView from './NavView';
-import FooterView from './FooterView';
-
+import EventList from './EventList';
+import CitySearch from './CitySearch';
+import NumberOfEvents from './NumberOfEvents';
+import EventGenre from './EventGenre';
+import { getEvents, extractLocations } from './api';
+import "./nprogress.css";
+import { WarningAlert } from './Alert';
+import {
+  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
 class App extends Component {
-  constructor() {
-    super();
-    this.state = {
-      events: [],
-      locations: [],
-      eventsToShow: 32,
-      eventsLocFilt: [],
-      numFilteredList: [],
-      errorText: '',
-      fullNav: false
-    }
+  state = {
+    events: [],
+    locations: [],
+    numberOfEvents: 10,
+    warningText: ''
   }
 
-  componentDidMount(){
-    window.scrollTo(0, 0)
-    this.mounted = true;
-
-    const token = localStorage.getItem("access_token");
-    if(token){
-     this.setState({fullNav: true});
-     this.login();
-    }
-    
-    if(window.location.href.indexOf('code') !== -1){
-      this.changeNav()
-      this.login();
-      ;
-    }
-  }
-
-  changeNav(){
-    if(this.state.fullNav === false){
-      if(this.state.events.length === 0){
-      setTimeout(() => {this.setState({fullNav: true})}, 1000)
-      } else {
-        this.setState({fullNav: true})
+  updateEvents = (location, eventCount) => {
+    let locationEvents;
+    getEvents().then((events) => {
+      if (location === 'all' && eventCount === 0) {
+        locationEvents = events;
+      } else if (location !== 'all' && eventCount === 0) {
+        locationEvents = events.filter((event) => event.location === location);
+      } else if (location === '' && eventCount > 0) {
+        locationEvents = events.slice(0, eventCount);
+      } else if (location === '' && eventCount === '') {
+        locationEvents = events;
       }
-    } else {
-      this.setState({fullNav: false})
-    }
-  }
-
-  signOut = () => {
-    localStorage.removeItem('locations');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('lastEvents');
-    this.setState({
-      events: [],
-      locations: [],
-      eventsToShow: 32,
-      eventsLocFilt: [],
-      numFilteredList: [],
-      errorText: '',
-      fullNav: false
-    })
-    return window.location = '/City-Meetup';
-  }
-
-  getData = () => {
-    const { locations, numFilteredList } = this.state;
-    const data = locations.map((location)=>{
-      const number = numFilteredList.filter((event) => event.location === location).length
-      const city = location.split(', ').shift()
-      return {city, number};
-    })
-    return data;
+      this.setState({
+        events: locationEvents,
+        numberOfEvents: eventCount,
+      });
+    });
   };
 
-  login(){
-    getEvents()
-    .then((events) => {
+  componentDidMount() {
+    this.mounted = true;
+    if (!navigator.onLine) {
+      this.setState({
+        warningText: 'Cached data is being displayed.'
+      });
+    }
+    else {
+      this.setState({
+        warningText: ''
+      })
+    }
+    getEvents().then((events) => {
       if (this.mounted) {
-        this.setState({ 
-          events: events,
-          numFilteredList: events.slice(0, 32), 
-          locations: extractLocations(events) });
+        this.setState({
+          events: events.slice(0, this.state.numberOfEvents),
+          locations: extractLocations(events),
+        });
       }
-    })
-    .catch((error) => {console.log(error)});
+    });
   }
+
 
   componentWillUnmount() {
     this.mounted = false;
   }
-  
-  updateEvents = (location) => {
-    const locationEvents = (location === 'all') ?
-      this.state.events :
-      this.state.events.filter((event) => event.location === location);
-    this.setState({ 
-      eventsLocFilt: locationEvents,
-      numFilteredList: numFilter(locationEvents, this.state.eventsToShow)});
-  }
 
-  updateEventNum = (num) => {
-    if (num >= 0 & num <= 60) {
-      this.setState({
-        errorText: ''
-      })
-     } else if(num === "NoNum") {
-     this.setState({
-       errorText: 'Please enter a number'
-     })
-    } else if (num > 60) {
-      this.setState({
-        errorText: 'Max 60 events'
-      })
-    } else {
-      this.setState({
-        errorText: 'Please enter a valid number'
-      })
-    }
-
-    if(this.state.eventsLocFilt.length !== 0){
-      this.setState({
-        eventsToShow: num,
-        numFilteredList: numFilter(this.state.eventsLocFilt, num)
-      });
-    } else if(num > 60) {
-      this.setState({
-        eventsToShow: 0,
-        numFilteredList: numFilter(this.state.events, 0)
-      });
-    } else {
-      this.setState({
-        eventsToShow: num,
-        numFilteredList: numFilter(this.state.events, num)
-      });
-    }
+  getData = () => {
+    const { locations, events } = this.state;
+    const data = locations.map((location) => {
+      const number = events.filter((event) => event.location === location).length
+      const city = location.split(', ').shift()
+      return { city, number };
+    })
+    return data;
   }
 
   render() {
-
     return (
-      <Router>
-        <Route exact path="/City-Meetup/" render={() => {
-          return (
-            <>
-              <NavView fullNav={this.state.fullNav} signOut={this.signOut} />
-              <HomeView login={()=>{this.login()}} changeNav={()=>{this.changeNav()}} fullNav={this.state.fullNav} />
-              <FooterView />
-            </>
-          )
-        }} />
-        
-        <Route exact path="/City-Meetup/Events" render={() => {
-          return (
-            <>
-              <NavView fullNav={this.state.fullNav} signOut={this.signOut}/>
-              <EventView state={this.state} updateEvents={this.updateEvents} updateEventNum={this.updateEventNum} login={this.login} getData={this.getData}/>
-            </>
-          )
-        }} />
-      </Router>
+      <div className="App">
+        <h1 className="app-name">Meet App</h1>
+        <CitySearch
+          locations={this.state.locations}
+          updateEvents={this.updateEvents}
+          numberOfEvents={this.state.numberOfEvents}
+        />
+        <NumberOfEvents
+          numberOfEvents={this.state.numberOfEvents}
+          updateEvents={this.updateEvents}
+        />
+        <WarningAlert text={this.state.warningText} />
+        <h4>Events in each city</h4>
+        <div className="data-vis-wrapper">
+          <EventGenre events={this.state.events} />
+          <ResponsiveContainer height={400} >
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <CartesianGrid />
+              <XAxis type="category" dataKey="city" name="City" />
+              <YAxis
+                allowDecimals={false}
+                type="number"
+                dataKey="number"
+                name="Number of events"
+              />
+              <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+              <Scatter data={this.getData()} fill="#8884d8" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+        <EventList
+          events={this.state.events}
+        />
+      </div>
     );
   }
 }

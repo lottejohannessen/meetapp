@@ -1,39 +1,38 @@
 import React, { Component } from 'react';
-import { ErrorAlert} from './Alert';
+import { InfoAlert } from './Alert';
 
 class CitySearch extends Component {
-
   state = {
     query: '',
     suggestions: [],
     showSuggestions: false,
-    errorText:''
-  }
-
-  listUpdate() {
-    const suggestions = this.props.locations.filter((location) => {
-      return location
-    });
-    this.setState({
-      suggestions,
-    });
+    infoText: ''
   }
 
   handleInputChanged = (event) => {
     const value = event.target.value;
+    this.setState({ showSuggestions: true });
     const suggestions = this.props.locations.filter((location) => {
       return location.toUpperCase().indexOf(value.toUpperCase()) > -1;
     });
+    if (value === '') {
+      this.setState({
+        suggestions: [],
+        query: '',
+        showSuggestions: false,
+      })
+    };
     if (suggestions.length === 0) {
       this.setState({
         query: value,
-        errorText: 'City not found.',
+        infoText: 'We cannot find the city you are looking for. Please try another city',
+        suggestions: [],
       });
     } else {
-      this.setState({
+      return this.setState({
         query: value,
         suggestions,
-        errorText:''
+        infoText: '',
       });
     }
   };
@@ -42,38 +41,35 @@ class CitySearch extends Component {
     this.setState({
       query: suggestion,
       showSuggestions: false,
-      errorText:''
+      infoText: ''
     });
+    this.props.updateEvents(suggestion, 0);
+  };
 
-    this.props.updateEvents(suggestion);
-  }
-  
   render() {
     return (
       <div className="CitySearch">
-        <ErrorAlert text={this.state.errorText} />
+        <label htmlFor='CitySearch'>Event Location</label>
         <input
           type="text"
           className="city"
           value={this.state.query}
-          placeholder="Search by Location"
+          placeholder="Enter Event Location"
           onChange={this.handleInputChanged}
-          onFocus={() => { this.listUpdate(); this.setState({showSuggestions: true }) }}
-          onBlur={() => { this.setState({showSuggestions: false }) }}
+          onFocus={() => { this.setState({ showSuggestions: true }) }}
         />
-        <ul className="suggestions" style={this.state.showSuggestions ? {}: { display: 'none' }}>
-          {this.state.suggestions.map((suggestion) => (
-            <li 
-              key={suggestion}
-              onMouseDown={() => this.handleItemClicked(suggestion)}
-            >
-              {suggestion}
+        {this.state.suggestions.length >= 1 ? (
+          <ul className="suggestions" style={this.state.showSuggestions ? {} : { display: 'none' }}>
+            {this.state.suggestions.map((suggestion) => (
+              <li key={suggestion} onClick={() => this.handleItemClicked(suggestion)}>{suggestion}</li>
+            ))}
+            <li key={'all'} onClick={() => this.handleItemClicked('all')}>
+              <b>See all cities</b>
             </li>
-          ))}
-          <li onMouseDown={() => this.handleItemClicked("all")}>
-            <b>See all cities</b>
-          </li>
-        </ul>
+          </ul>
+        ) : (
+          <InfoAlert text={this.state.infoText} />
+        )}
       </div>
     );
   }
